@@ -1,0 +1,35 @@
+[project]
+name = "audio-course-unit1"
+version = "0.1.0"
+description = "Complete worked example for Unit 1 (Working with audio data) of the Hugging Face Audio Course."
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "datasets==3.6.0",        # last release using the soundfile/librosa audio backend
+                              # (4.x switches to torchcodec + FFMPEG, painful on Windows)
+    "librosa==0.11.0",        # path= API, NumPy 2.x support; pulls in soundfile + pooch
+    "soundfile>=0.12.1",      # libsndfile WAV/FLAC decoding, native on Windows
+    "pooch>=1.8",             # required by librosa.ex() to download the example clip
+    "transformers>=4.44,<5",  # WhisperFeatureExtractor (downloads a tiny config, no weights)
+    "numpy>=1.26,<3",
+    "matplotlib>=3.8",
+    "gradio>=4.44",           # optional listening demo only
+    "torch>=2.2",             # CPU build is enough; no GPU required
+    "ipykernel",              # run the notebook
+    "jupyterlab",             # open/run the notebook
+    "ipywidgets",             # interactive tqdm progress bars (silences IProgress warning)
+]
+
+# This is a runnable example, not an installable library: tell uv not to build it
+# as a package (otherwise `uv sync` looks for a module to install).
+[tool.uv]
+package = false
+
+# Pull torch from the CPU-only wheel index so uv never downloads a multi-GB CUDA build
+# on a machine without an NVIDIA GPU.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
