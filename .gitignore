@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# uv / virtual environment (uv also writes .venv/.gitignore)
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated figures and audio produced by running the example
+figures/*
+!figures/.gitkeep
+
+# Local caches
+.cache/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
