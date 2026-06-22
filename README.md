@@ -10,6 +10,7 @@ one self-contained folder per unit. Everything runs on CPU (Windows-friendly) an
 |------|--------|--------|
 | 1 — Working with audio data | [`units/unit1_working_with_audio_data/`](units/unit1_working_with_audio_data/) | Sampling, Nyquist, dB, bit depth, waveform, spectrum, spectrogram, mel; loading/resampling/filtering a 🤗 dataset; feature extraction; streaming |
 | 2 — A gentle introduction to audio applications | [`units/unit2_audio_applications/`](units/unit2_audio_applications/) | The `pipeline()` function for audio classification, ASR, and audio generation (TTS + music); VoxPopuli streaming hands-on |
+| 3 — Transformer architectures for audio | [`units/unit3_transformer_architectures/`](units/unit3_transformer_architectures/) | Runnable demos of the architecture families: waveform vs log-mel inputs, CTC blank-collapse decoding (Wav2Vec2), seq2seq task tokens + translation (Whisper), and spectrogram-patch classification (AST) |
 
 Each unit folder has the same shape:
 
