@@ -1,123 +1,60 @@
-# Hugging Face Audio Course — Unit 1: Working with Audio Data
+# Hugging Face Audio Course — worked examples
 
-A single, complete, **runnable** example that exercises *every* concept from
-[Unit 1 of the HF Audio Course](https://huggingface.co/learn/audio-course/chapter1/introduction):
-audio fundamentals, visualising audio, loading a 🤗 audio dataset, resampling,
-filtering, feature extraction, and streaming.
+Complete, runnable examples for the [Hugging Face Audio Course](https://huggingface.co/learn/audio-course),
+one self-contained folder per unit. Everything runs on CPU (Windows-friendly) and is managed with
+[uv](https://docs.astral.sh/uv/).
 
-It ships in two equivalent forms:
+## Units
 
-| File | What it is | When to use |
-|------|------------|-------------|
-| [`unit1_audio_data.ipynb`](unit1_audio_data.ipynb) | Annotated Jupyter notebook with inline plots + audio | **Recommended** — best for learning |
-| [`unit1_audio_data.py`](unit1_audio_data.py) | The same code as a script that saves plots to `figures/` | If you don't run Jupyter |
-| [`gradio_demo.py`](gradio_demo.py) | Optional mini web app to listen to dataset clips | Optional extra |
+| Unit | Folder | Covers |
+|------|--------|--------|
+| 1 — Working with audio data | [`units/unit1_working_with_audio_data/`](units/unit1_working_with_audio_data/) | Sampling, Nyquist, dB, bit depth, waveform, spectrum, spectrogram, mel; loading/resampling/filtering a 🤗 dataset; feature extraction; streaming |
+| 2 — A gentle introduction to audio applications | [`units/unit2_audio_applications/`](units/unit2_audio_applications/) | The `pipeline()` function for audio classification, ASR, and audio generation (TTS + music); VoxPopuli streaming hands-on |
 
----
+Each unit folder has the same shape:
 
-## 1. Setup (with [uv](https://docs.astral.sh/uv/))
+```
+units/unitN_*/
+├── walkthrough.py    # runnable script; saves plots/clips to figures/
+├── notebook.ipynb    # the same material with inline plots + audio
+├── gradio_demo.py    # optional local demo
+├── figures/          # generated outputs (git-ignored)
+└── README.md         # unit-specific setup, run steps, and notes
+```
 
-This project is managed with **uv**. From this folder:
+## Setup
+
+From the repo root:
 
 ```bash
 uv sync
 ```
 
-That single command creates an isolated virtual environment, provisions Python
-3.12 if needed, and installs everything (including a **CPU-only** build of
-PyTorch — no GPU required). No manual `venv` activation is needed; run things
-with `uv run` instead.
+This creates one shared virtual environment (Python 3.12, CPU-only PyTorch) used by every unit.
+No per-unit install is needed.
 
-> **Why the pinned versions?** `datasets` is pinned to `3.6.0` on purpose. From
-> `datasets` 4.0 the audio backend switched to `torchcodec` + FFmpeg, which is
-> awkward to install on Windows. `3.6.0` uses the `soundfile`/`librosa` backend,
-> so MINDS-14 (WAV) and LibriSpeech (FLAC) decode natively with no system-level
-> codec install. **Don't upgrade `datasets` past 3.6.0.**
+> **Unit 2 audio generation** (Bark TTS + MusicGen) is multi-GB and slow on CPU, so it is an
+> optional extra. Install it only when you want to run the generation demo:
+> ```bash
+> uv sync --extra generation
+> ```
 
-## 2. Run the example
-
-**As a notebook (recommended):**
+## Running an example
 
 ```bash
-uv run jupyter lab
+# scripts
+uv run python units/unit1_working_with_audio_data/walkthrough.py
+uv run python units/unit2_audio_applications/walkthrough.py
+
+# notebooks
+uv run jupyter lab        # then open any units/*/notebook.ipynb
 ```
 
-Then open `unit1_audio_data.ipynb` and choose *Run → Run All Cells*. Plots and
-audible clips render inline.
+See each unit's own `README.md` for details, concept coverage, and model/download notes.
 
-**As a script:**
+## Why these dependency pins?
 
-```bash
-uv run python unit1_audio_data.py
-```
-
-All plots and a few `.wav` demo clips are written to the [`figures/`](figures/)
-folder, with explanations printed to the console.
-
-**Optional listening demo (local web app):**
-
-```bash
-uv run python gradio_demo.py
-```
-
-Opens at `http://127.0.0.1:7860`. (Windows may show a one-time firewall prompt;
-the app stays fully local — nothing is uploaded.)
-
-> **First run downloads a few small files:** the librosa "trumpet" example clip,
-> the MINDS-14 `en-AU` split, and the Whisper feature-extractor *config* (a few
-> KB — no model weights). These are cached for subsequent runs.
-
----
-
-## 3. Concepts covered
-
-| # | Concept | Where |
-|---|---------|-------|
-| 1 | Sampling & sampling rate (8 / 16 / 44.1 kHz) | §2 synthetic demo |
-| 2 | Nyquist limit & aliasing | §2 (hear the alias) |
-| 3 | Amplitude & decibels | §2 |
-| 4 | Bit depth & dynamic range | §2 quantization demo |
-| 5 | Waveform (time domain) | §3 `librosa.display.waveshow` |
-| 6 | Frequency spectrum (DFT/FFT) | §4 `np.fft.rfft` |
-| 7 | Spectrogram (STFT) | §5 `librosa.stft` |
-| 8 | Mel / log-mel spectrogram | §6 `librosa.feature.melspectrogram` |
-| 9 | Loading a 🤗 audio dataset | §7 `load_dataset("PolyAI/minds14", ...)` |
-| 10 | The `Audio` feature (`array`, `sampling_rate`, `path`) | §7 |
-| 11 | Listening to audio | §8 |
-| 12 | Resampling | §9 `cast_column("audio", Audio(sampling_rate=16_000))` |
-| 13 | Filtering by duration | §10 `dataset.filter(...)` |
-| 14 | Feature-extractor preprocessing | §11 `WhisperFeatureExtractor` + `map` |
-| 15 | Streaming large datasets | §12 `load_dataset(..., streaming=True)` |
-
----
-
-## 4. The streaming section uses GigaSpeech (gated)
-
-§12 follows the course exactly and streams `speechcolab/gigaspeech`. That dataset
-is **gated** — it won't load until you request access:
-
-1. Create a free account at <https://huggingface.co>.
-2. Open <https://huggingface.co/datasets/speechcolab/gigaspeech>, accept the
-   terms, and complete the access form (approval can take a little while).
-3. Log in locally so your token is cached:
-   ```bash
-   uv run huggingface-cli login
-   ```
-   Paste a token from <https://huggingface.co/settings/tokens>.
-4. Re-run the streaming section.
-
-**Until access is granted, the example does not crash.** The streaming step is
-wrapped in a `try/except` that prints these instructions and automatically falls
-back to a small public dataset (`hf-internal-testing/librispeech_asr_dummy`), so
-you can still see streaming in action.
-
----
-
-## 5. Notes / corrections vs. the course text
-
-- `librosa.get_duration(filename=...)` is deprecated → this example uses the
-  current `path=` / `y=` arguments.
-- The course's streaming auth (`use_auth_token=True`) is outdated → use
-  `huggingface-cli login` instead.
-- The course launches a Gradio server to listen; in the notebook we prefer the
-  zero-setup `IPython.display.Audio` and keep the Gradio app as an optional extra.
+`datasets` is pinned to `3.6.0` on purpose: from 4.0 it switched its audio backend to
+`torchcodec` + FFmpeg, which is awkward on Windows. `3.6.0` uses the `soundfile`/`librosa`
+backend, so audio decodes natively with no system codecs. PyTorch is pulled from the CPU-only
+wheel index so no multi-GB CUDA build is ever downloaded. **Do not bump `datasets` past 3.6.0.**
