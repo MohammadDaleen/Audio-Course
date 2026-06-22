@@ -8,9 +8,12 @@ __pycache__/
 # Jupyter
 .ipynb_checkpoints/
 
-# Generated figures and audio produced by running the example
-figures/*
-!figures/.gitkeep
+# Generated figures and audio produced by running the examples (per unit)
+units/*/figures/*
+!units/*/figures/.gitkeep
+
+# Build artifacts (project is not normally built, but just in case)
+*.egg-info/
 
 # Local caches
 .cache/
