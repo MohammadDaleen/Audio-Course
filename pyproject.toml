@@ -1,7 +1,7 @@
 [project]
-name = "audio-course-unit1"
+name = "audio-course"
 version = "0.1.0"
-description = "Complete worked example for Unit 1 (Working with audio data) of the Hugging Face Audio Course."
+description = "Worked examples for the Hugging Face Audio Course (one self-contained folder per unit)."
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "datasets==3.6.0",        # last release using the soundfile/librosa audio backend
@@ -9,14 +9,24 @@ dependencies = [
     "librosa==0.11.0",        # path= API, NumPy 2.x support; pulls in soundfile + pooch
     "soundfile>=0.12.1",      # libsndfile WAV/FLAC decoding, native on Windows
     "pooch>=1.8",             # required by librosa.ex() to download the example clip
-    "transformers>=4.44,<5",  # WhisperFeatureExtractor (downloads a tiny config, no weights)
+    "transformers>=4.44,<5",  # feature extractors (Unit 1) + pipelines (Unit 2)
+    "accelerate>=0.30",       # Unit 2: transformers pipelines use it for model loading
     "numpy>=1.26,<3",
     "matplotlib>=3.8",
-    "gradio>=4.44",           # optional listening demo only
+    "gradio>=4.44",           # optional listening / inference demos
     "torch>=2.2",             # CPU build is enough; no GPU required
-    "ipykernel",              # run the notebook
-    "jupyterlab",             # open/run the notebook
+    "ipykernel",              # run the notebooks
+    "jupyterlab",             # open/run the notebooks
     "ipywidgets",             # interactive tqdm progress bars (silences IProgress warning)
+]
+
+[project.optional-dependencies]
+# Multi-GB, slow-on-CPU audio generation (Unit 2: Bark TTS + MusicGen).
+# Install only when you want to run the generation demo:  uv sync --extra generation
+generation = [
+    "sentencepiece>=0.2",     # MusicGen's T5 text-encoder tokenizer
+    "protobuf>=4,<6",         # required to load the sentencepiece-based config
+    "scipy>=1.11",            # write generated audio to .wav
 ]
 
 # This is a runnable example, not an installable library: tell uv not to build it
