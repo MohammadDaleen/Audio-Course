@@ -10,6 +10,7 @@ the GTZAN music-genre dataset.
 | [`finetune.py`](finetune.py) | Fine-tuning: a **CPU smoke test** (default) and a **full GPU/Colab** run |
 | [`gradio_demo.py`](gradio_demo.py) | CPU genre classifier using the published fine-tuned model |
 | [`notebook.ipynb`](notebook.ipynb) | The survey + genre demo inline; fine-tuning code shown, gated by a flag |
+| [`colab_handson.ipynb`](colab_handson.ipynb) | **Ready-to-run Colab notebook for the hands-on**: fully-explained, fine-tunes to >=87% and pushes to the Hub (open it on a GPU runtime) |
 
 ## Setup & run
 
@@ -46,10 +47,12 @@ two modes:
 ### The hands-on exercise
 
 The Unit 4 hands-on asks you to fine-tune on GTZAN to **≥ 87% accuracy** (the course baseline is 83%) and
-push the model to the Hub for your certificate. `finetune.py` full mode already calls
-`trainer.push_to_hub(**kwargs)` with the required metadata tags. To push past the baseline, try more
-epochs, a different base model (Wav2Vec2, AST), or a learning-rate sweep. Run it on Colab/GPU — it is not
-feasible on this CPU machine.
+push the model to the Hub for your certificate. The easiest path is the fully-explained
+[`colab_handson.ipynb`](colab_handson.ipynb): open it in Google Colab on a **GPU** runtime
+(Runtime → Change runtime type → T4 GPU) and run all cells (~1 hour). It trains for 20 epochs, keeps the
+best checkpoint, and pushes the model with the certificate metadata. Equivalently, `finetune.py` full
+mode (`UNIT4_MODE=full`) runs the same recipe. To push past the baseline, try more epochs, a different
+base model (Wav2Vec2, AST), or a learning-rate sweep. Full training is not feasible on this CPU machine.
 
 ## Concepts covered
 
