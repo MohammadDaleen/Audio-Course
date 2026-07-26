@@ -29,6 +29,14 @@ generation = [
     "scipy>=1.11",            # write generated audio to .wav
 ]
 
+# Unit 4 fine-tuning (the GTZAN training run). Optional: the pre-trained survey, the
+# genre-classifier demo, and the CPU smoke test all run on the core deps.
+# Install before a full training run:  uv sync --extra training
+training = [
+    "evaluate>=0.4",          # course uses evaluate.load("accuracy") (downloads a tiny metric module once)
+    "tensorboard>=2.14",      # optional Trainer logs (report_to="tensorboard")
+]
+
 # This is a runnable example, not an installable library: tell uv not to build it
 # as a package (otherwise `uv sync` looks for a module to install).
 [tool.uv]
