@@ -11,6 +11,9 @@ dependencies = [
     "pooch>=1.8",             # required by librosa.ex() to download the example clip
     "transformers>=4.44,<5",  # feature extractors (Unit 1) + pipelines (Unit 2)
     "accelerate>=0.30",       # Unit 2: transformers pipelines use it for model loading
+    "jiwer>=3.0",             # Unit 5: word/character error rate. Also the backend
+                              # evaluate.load("wer") imports, so it belongs in core:
+                              # the Unit 5 walkthrough computes WER without the extra.
     "numpy>=1.26,<3",
     "matplotlib>=3.8",
     "gradio>=4.44",           # optional listening / inference demos
@@ -29,11 +32,12 @@ generation = [
     "scipy>=1.11",            # write generated audio to .wav
 ]
 
-# Unit 4 fine-tuning (the GTZAN training run). Optional: the pre-trained survey, the
-# genre-classifier demo, and the CPU smoke test all run on the core deps.
+# Fine-tuning runs (Unit 4's GTZAN classifier, Unit 5's Whisper ASR). Optional: every
+# walkthrough, notebook, demo, and CPU smoke test runs on the core deps alone.
 # Install before a full training run:  uv sync --extra training
 training = [
-    "evaluate>=0.4",          # course uses evaluate.load("accuracy") (downloads a tiny metric module once)
+    "evaluate>=0.4",          # course uses evaluate.load("accuracy") / load("wer")
+                              # (downloads a tiny metric module from the Hub once)
     "tensorboard>=2.14",      # optional Trainer logs (report_to="tensorboard")
 ]
 
