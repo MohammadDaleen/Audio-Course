@@ -280,6 +280,7 @@ def main() -> None:
             warmup_steps=50,
             max_steps=600,
             gradient_checkpointing=True,
+            gradient_checkpointing_kwargs={"use_reentrant": False},
             fp16=True,                      # GPU only
             fp16_full_eval=True,
             eval_strategy="steps",          # transformers 4.57: NOT evaluation_strategy
