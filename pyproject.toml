@@ -17,6 +17,10 @@ dependencies = [
     "sentencepiece>=0.2",     # Unit 6: SpeechT5's tokenizer is sentencepiece-only, with no
                               # fast variant, so SpeechT5Processor.from_pretrained() raises
                               # ImportError without it: the Unit 6 smoke test needs it core.
+    "scikit-learn>=1.4",      # Unit 7: the meeting section clusters MFCC windows with
+                              # AgglomerativeClustering. It already arrived transitively via
+                              # librosa, but depending on another package's pin is how a
+                              # working import disappears in a minor release: declare it.
     "numpy>=1.26,<3",
     "matplotlib>=3.8",
     "gradio>=4.44",           # optional listening / inference demos
