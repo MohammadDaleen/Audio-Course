@@ -13,17 +13,23 @@ one self-contained folder per unit. Everything runs on CPU (Windows-friendly) an
 | 3 — Transformer architectures for audio | [`units/unit3_transformer_architectures/`](units/unit3_transformer_architectures/) | Runnable demos of the architecture families: waveform vs log-mel inputs, CTC blank-collapse decoding (Wav2Vec2), seq2seq task tokens + translation (Whisper), and spectrogram-patch classification (AST) |
 | 4 — Build a music genre classifier | [`units/unit4_music_genre_classifier/`](units/unit4_music_genre_classifier/) | Pre-trained classification survey (keyword spotting, zero-shot CLAP, language ID); fine-tuning DistilHuBERT on GTZAN (CPU smoke test + full GPU/Colab run with Hub push); a genre-classifier Gradio demo |
 | 5 — Automatic speech recognition | [`units/unit5_automatic_speech_recognition/`](units/unit5_automatic_speech_recognition/) | CTC vs seq2seq on one clip (Wav2Vec2 vs Whisper); the Whisper checkpoint family and RTFx; transcribe vs translate; the 30-second wall, chunking and timestamps; the English ASR dataset landscape; WER by hand with the S/I/D alignment, CER, orthographic vs normalised; what the data collator builds; fine-tuning Whisper (CPU smoke test + Colab hands-on with Hub push); a tabbed transcription demo |
+| 6 — From text to speech | [`units/unit6_text_to_speech/`](units/unit6_text_to_speech/) | TTS as two models (a SpeechT5 acoustic model plus a frozen HiFi-GAN vocoder); the 81-symbol character vocabulary and why you audit it by tokenizing rather than by vocab keys; 512-dim x-vector speaker conditioning; SpeechT5 vs Bark vs MMS/VITS, and the one-to-many problem proved via inference-time dropout; the TTS dataset landscape and which of the course's corpora still load; spectrogram labels, `-100` masking and reduction-factor truncation; evaluation the course says is impossible (round-trip WER, a median-f0 check, a blind MOS sheet); fine-tuning SpeechT5 (CPU smoke test + Colab hands-on with Hub push and the `pipeline_tag` the grader queries); a synthesis and engine-comparison demo |
 
-Each unit folder has the same shape:
+Each unit folder has roughly the same shape:
 
 ```
 units/unitN_*/
-├── walkthrough.py    # runnable script; saves plots/clips to figures/
-├── notebook.ipynb    # the same material with inline plots + audio
-├── gradio_demo.py    # optional local demo
-├── figures/          # generated outputs (git-ignored)
-└── README.md         # unit-specific setup, run steps, and notes
+├── walkthrough.py       # runnable script; saves plots/clips to figures/
+├── notebook.ipynb       # the same material with inline plots + audio
+├── finetune.py          # fine-tuning: CPU smoke test + full GPU/Colab run
+├── colab_handson.ipynb  # ready-to-run Colab notebook for the unit's hands-on
+├── gradio_demo.py       # optional local demo
+├── figures/             # generated outputs (git-ignored)
+└── README.md            # unit-specific setup, run steps, and notes
 ```
+
+Not every unit has every file: `finetune.py` and `colab_handson.ipynb` appear only in the units with
+a graded fine-tuning hands-on (4, 5 and 6).
 
 ## Setup
 

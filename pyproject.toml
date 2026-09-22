@@ -14,6 +14,9 @@ dependencies = [
     "jiwer>=3.0",             # Unit 5: word/character error rate. Also the backend
                               # evaluate.load("wer") imports, so it belongs in core:
                               # the Unit 5 walkthrough computes WER without the extra.
+    "sentencepiece>=0.2",     # Unit 6: SpeechT5's tokenizer is sentencepiece-only, with no
+                              # fast variant, so SpeechT5Processor.from_pretrained() raises
+                              # ImportError without it: the Unit 6 smoke test needs it core.
     "numpy>=1.26,<3",
     "matplotlib>=3.8",
     "gradio>=4.44",           # optional listening / inference demos
@@ -27,13 +30,13 @@ dependencies = [
 # Multi-GB, slow-on-CPU audio generation (Unit 2: Bark TTS + MusicGen).
 # Install only when you want to run the generation demo:  uv sync --extra generation
 generation = [
-    "sentencepiece>=0.2",     # MusicGen's T5 text-encoder tokenizer
-    "protobuf>=4,<6",         # required to load the sentencepiece-based config
-    "scipy>=1.11",            # write generated audio to .wav
+    "protobuf>=4,<6",         # MusicGen's T5 tokenizer config is a protobuf; sentencepiece
+                              # (a core dependency since Unit 6) needs it to read that config.
 ]
 
-# Fine-tuning runs (Unit 4's GTZAN classifier, Unit 5's Whisper ASR). Optional: every
-# walkthrough, notebook, demo, and CPU smoke test runs on the core deps alone.
+# Fine-tuning runs (Unit 4's GTZAN classifier, Unit 5's Whisper ASR, Unit 6's SpeechT5
+# TTS). Optional: every walkthrough, notebook, demo, and CPU smoke test runs on the core
+# deps alone.
 # Install before a full training run:  uv sync --extra training
 training = [
     "evaluate>=0.4",          # course uses evaluate.load("accuracy") / load("wer")
