@@ -394,9 +394,24 @@ def section_latency(ds):
     secs = len(clip["audio"]["array"]) / SAMPLING_RATE
     ref = clip["text"].lower()
 
+    # Warm EVERY checkpoint this section will time. Without this the first model's load
+    # lands inside t_asr and the first voice's load lands inside t_two, and the table below
+    # reports import cost as latency. Measured on this machine: cold, whisper-tiny's 3-stage
+    # row came out at 14.57s against a 2-stage 3.68s, which prices the MT hop at eleven
+    # seconds. Warm, the same two rows are 1.79s and 1.58s, so the hop costs about two
+    # tenths of a second. The conclusion survives either way; the magnitude does not, and
+    # the magnitude is what anyone reading a latency table takes away from it.
+    print("\n   Warming every checkpoint first, so the table below times inference and not")
+    print("   import. A model load in the wrong place is worth ten seconds of imaginary MT.")
+    for model_id in models:
+        asr_pipe(model_id)
+    translator()
+    speaker(TTS_FRA)
+    speaker(TTS_ENG)
+
     print(f"\n   One clip ({secs:.1f}s), each ASR checkpoint in slot 1, both cascades:")
     print(f"\n     {'model':<22}{'ASR s':>7}{'WER':>8}{'3-stage s':>11}{'2-stage s':>11}")
-    points = []
+    points, deltas = [], []
     for model_id in models:
         t0 = time.perf_counter()
         hyp = asr_pipe(model_id)(
@@ -420,12 +435,13 @@ def section_latency(ds):
         name = model_id.split("/")[-1]
         print(f"     {name:<22}{t_asr:7.2f}{wer:8.3f}{t_asr + t_rest3:11.2f}{t_two:11.2f}")
         points.append((name, (t_asr + t_rest3) / secs, wer))
+        deltas.append((t_asr + t_rest3) - t_two)
 
-    print(
-        "\n   The 2-stage cascade is the faster one and it produces English - which is exactly what\n"
-        "   the hands-on forbids. You are not choosing between fast and slow; you are paying the\n"
-        "   extra stage to get a target language at all."
-    )
+    gap = float(np.mean(deltas))
+    print(f"\n   The third stage costs {gap:+.2f}s on average here, and it is what buys a target")
+    print("   language at all: the 2-stage cascade produces ENGLISH, which is exactly what the")
+    print("   hands-on forbids. You are not choosing between fast and slow. You are paying a")
+    print("   fraction of a second for the only output that can pass.")
 
     fig, ax = plt.subplots(figsize=(9, 4.5))
     for name, rtf, wer in points:
