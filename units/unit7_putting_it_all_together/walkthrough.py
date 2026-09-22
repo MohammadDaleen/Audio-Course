@@ -222,13 +222,36 @@ def section_cascade(clip):
     wav = synthesise(french)
     t_tts = time.perf_counter() - t0
 
+    # Run the whole thing a SECOND time, now that every checkpoint is resident. The first
+    # pass above is what a cold process costs, because each stage loaded its own weights
+    # inside its own timer; the second is what the models actually cost to run. Reporting
+    # only one of the two is how a latency table ends up an order of magnitude out, which is
+    # the mistake section 4 used to make.
+    t0 = time.perf_counter()
+    asr_pipe()(audio_dict(arr),
+               generate_kwargs={"task": "transcribe", "language": "english", "num_beams": 1})
+    w_asr = time.perf_counter() - t0
+    t0 = time.perf_counter()
+    translate_text(english)
+    w_mt = time.perf_counter() - t0
+    t0 = time.perf_counter()
+    synthesise(french)
+    w_tts = time.perf_counter() - t0
+
     print(f"\n     source audio    : {src_secs:.2f}s")
-    print(f"     1. ASR   ({t_asr:5.2f}s) : {english}")
-    print(f"     2. MT    ({t_mt:5.2f}s) : {french}")
-    print(f"     3. TTS   ({t_tts:5.2f}s) : {len(wav) / SAMPLING_RATE:.2f}s of French audio")
-    total = t_asr + t_mt + t_tts
-    print(f"\n     total {total:.2f}s for {src_secs:.2f}s of audio  "
-          f"(real-time factor {total / src_secs:.2f})")
+    print(f"     1. ASR   : {english}")
+    print(f"     2. MT    : {french}")
+    print(f"     3. TTS   : {len(wav) / SAMPLING_RATE:.2f}s of French audio")
+
+    total, warm = t_asr + t_mt + t_tts, w_asr + w_mt + w_tts
+    print(f"\n     {'':<14}{'ASR':>9}{'MT':>9}{'TTS':>9}{'total':>9}{'RTF':>8}")
+    print(f"     {'first call':<14}{t_asr:9.2f}{t_mt:9.2f}{t_tts:9.2f}{total:9.2f}"
+          f"{total / src_secs:8.2f}")
+    print(f"     {'warm':<14}{w_asr:9.2f}{w_mt:9.2f}{w_tts:9.2f}{warm:9.2f}"
+          f"{warm / src_secs:8.2f}")
+    print(f"\n     {total - warm:.2f}s of that first row was loading weights, not running them.")
+    print("     Quote the wrong row and you will conclude this cascade is unusable. Section 4")
+    print("     times the warm one, and every number in it is deliberate.")
 
     print(
         "\n   Look at what crosses each seam: stage 1 hands stage 2 a STRING. Not audio, not a\n"
@@ -240,17 +263,23 @@ def section_cascade(clip):
     save_wav("02_cascade_french.wav", wav)
 
     stages = ["ASR\nwhisper-base", "MT\nopus-mt-en-fr", "TTS\nmms-tts-fra"]
-    times = [t_asr, t_mt, t_tts]
     params = [72.6, 75.1, 36.3]   # millions, as reported by the checkpoints
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 4))
-    left = 0.0
-    for name, secs, colour in zip(stages, times, ["tab:blue", "tab:orange", "tab:green"]):
-        ax1.barh(0, secs, left=left, color=colour, label=name.replace("\n", " "))
-        ax1.text(left + secs / 2, 0, f"{secs:.1f}s", ha="center", va="center", color="white")
-        left += secs
+    for row, (times, label) in enumerate(((( t_asr, t_mt, t_tts), "first call"),
+                                          ((w_asr, w_mt, w_tts), "warm"))):
+        left = 0.0
+        for i, (name, secs, colour) in enumerate(
+                zip(stages, times, ["tab:blue", "tab:orange", "tab:green"])):
+            ax1.barh(row, secs, left=left, color=colour, height=0.55,
+                     label=name.replace("\n", " ") if row == 0 else None)
+            if secs > 0.25:
+                ax1.text(left + secs / 2, row, f"{secs:.1f}", ha="center", va="center",
+                         color="white", fontsize=8)
+            left += secs
     ax1.axvline(src_secs, color="tab:red", ls="--", lw=2, label=f"audio length {src_secs:.1f}s")
-    ax1.set(yticks=[], xlabel="seconds", title="Latency is additive across the cascade")
-    ax1.legend(loc="upper right", fontsize=8)
+    ax1.set(yticks=[0, 1], yticklabels=["first call", "warm"], xlabel="seconds",
+            title="Latency is additive, and the first call is mostly loading")
+    ax1.legend(loc="lower right", fontsize=8)
     ax2.bar(stages, params, color=["tab:blue", "tab:orange", "tab:green"])
     for i, p in enumerate(params):
         ax2.text(i, p, f"{p:.0f}M", ha="center", va="bottom")
