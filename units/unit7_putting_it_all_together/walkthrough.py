@@ -14,6 +14,7 @@ silently wrong. So this script measures each seam rather than the end of the pip
  6. The voice assistant- four stages, two of which no longer exist
  7. Transcribe a meeting - word timestamps, the merge, and diarization you cannot fake
  8. The hands-on       - what the assessor actually calls, and the int16 trap
+ 9. The last seam      - a 39-symbol vocabulary that deletes what it cannot say
 
 Unit 5 gave us ASR, Unit 6 gave us TTS. Neither needed the other. This unit is the first
 where the failure of one component shows up as a confusing failure of a different one.
@@ -25,9 +26,12 @@ Run with:
 Models used: openai/whisper-base (~290 MB) and whisper-tiny (~151 MB, both cached since
 Units 2-5), Helsinki-NLP/opus-mt-en-fr (~301 MB), facebook/mms-tts-fra and -eng (~145 MB
 each), MBZUAI/LaMini-Flan-T5-248M (~990 MB), MIT/ast-finetuned-speech-commands-v2 (~342 MB,
-cached since Unit 4), and Unit 6's SpeechT5 stack for section 5. Section 7 streams ~59 MB of
-ylacombe/english_dialects. About 1.6 GB is new on a cold machine, into ~/.cache/huggingface,
-not the repo. Everything runs on CPU in about 5-9 minutes.
+cached since Unit 4), and Unit 6's SpeechT5 stack for section 5. Section 9 adds the Arabic pair,
+Helsinki-NLP/opus-mt-en-ar (~307 MB) and facebook/mms-tts-ara (~145 MB). Section 7 streams ~59 MB
+of ylacombe/english_dialects.
+
+Itemised, that is 301 + 145 + 990 + 307 + 145 + 59 = about 1.95 GB new on a cold machine, into
+~/.cache/huggingface, not the repo. Everything runs on CPU in about 6-11 minutes.
 
 Deliberately NOT downloaded: facebook/mms-lid-126 (3.86 GB), the language classifier the
 grading Space uses. Section 8 explains why, and why that Space is currently down.
@@ -62,7 +66,9 @@ ASR_ID = "openai/whisper-base"          # 290 MB, cached since Unit 5; stage 1 o
 ASR_TINY = "openai/whisper-tiny"        # 151 MB, cached since Unit 2; the section 4 sweep
 ASR_SMALL = "openai/whisper-small"      # 967 MB, cached since Unit 5; section 4, behind a flag
 MT_ID = "Helsinki-NLP/opus-mt-en-fr"    # 301 MB, 75M params; MarianTokenizer is sentencepiece-only
+MT_ARA = "Helsinki-NLP/opus-mt-en-ar"   # 307 MB; section 9's second target, and the Space's
 TTS_FRA = "facebook/mms-tts-fra"        # 145 MB, phonemize:false so no espeak-ng needed
+TTS_ARA = "facebook/mms-tts-ara"        # 145 MB; 39 symbols, no digits, NO punctuation at all
 TTS_ENG = "facebook/mms-tts-eng"        # 145 MB, cached since Unit 6; the 2-stage baseline's voice
 LLM_ID = "MBZUAI/LaMini-Flan-T5-248M"   # 990 MB; the Hub's pipeline_tag on this model is WRONG
 WAKE_ID = "MIT/ast-finetuned-speech-commands-v2"   # 342 MB, cached since Unit 4
@@ -121,15 +127,16 @@ def asr_pipe(model_id: str = ASR_ID):
     return _CACHE[key]
 
 
-def translator():
-    """MarianMT en->fr. Sentencepiece-only tokenizer: there is no fast variant."""
+def translator(model_id: str = MT_ID):
+    """MarianMT en->xx. Sentencepiece-only tokenizer: there is no fast variant."""
     from transformers import MarianMTModel, MarianTokenizer
 
-    if "mt" not in _CACHE:
-        tok = MarianTokenizer.from_pretrained(MT_ID)
-        model = MarianMTModel.from_pretrained(MT_ID)
-        _CACHE["mt"] = (tok, model)
-    return _CACHE["mt"]
+    key = f"mt:{model_id}"
+    if key not in _CACHE:
+        tok = MarianTokenizer.from_pretrained(model_id)
+        model = MarianMTModel.from_pretrained(model_id)
+        _CACHE[key] = (tok, model)
+    return _CACHE[key]
 
 
 def speaker(model_id: str = TTS_FRA):
@@ -143,10 +150,10 @@ def speaker(model_id: str = TTS_FRA):
     return _CACHE[key]
 
 
-def translate_text(text: str) -> str:
+def translate_text(text: str, model_id: str = MT_ID) -> str:
     import torch
 
-    tok, model = translator()
+    tok, model = translator(model_id)
     with torch.no_grad():
         out = model.generate(**tok(text, return_tensors="pt"),
                              num_beams=1, max_new_tokens=256)
@@ -256,7 +263,7 @@ def section_cascade(clip):
 # ===========================================================================
 # 2. LANGUAGE FORCING
 # ===========================================================================
-def section_language_forcing(clip, reference, mt_french):
+def section_language_forcing(clip, mt_french):
     banner("2. Whisper translates INTO English only, and the \"trick\" that isn't one")
 
     print(
@@ -635,14 +642,20 @@ def section_meeting(ds):
     for seg in merged[:4]:
         print(f"     [{seg['speaker']}] ({seg['start']:.1f}-{seg['end']:.1f}s) {seg['text'][:56]}")
 
-    acc = mfcc_diarization_accuracy(meeting, truth)
+    acc, n_win = mfcc_diarization_accuracy(meeting, truth)
+    chance = chance_baseline(n_win)
     print(f"\n   Now the part the course does with pyannote, which is gated and needs torchaudio.")
     print(f"   The only CPU-only substitute here is librosa MFCCs plus sklearn clustering:")
-    print(f"\n     frame accuracy on this track: {acc:.1%}")
-    print("\n   Two speakers means 50% is a coin flip. MFCCs encode WHAT was said far more strongly")
-    print("   than WHO said it, so without a speaker-embedding model you are clustering phonetics.")
-    print("   meeting.py sweeps every speaker pair and prints the distribution. Treat this as a")
-    print("   measured negative result, not a diarizer.")
+    print(f"\n     frame accuracy on this track : {acc:.1%}  ({n_win} one-second windows)")
+    print(f"     RANDOM clustering scores     : {chance:.1%}  (measured, 20k trials at n={n_win})")
+    print(f"     so this method beats chance by {acc - chance:+.1%}")
+    print("\n   That second number is the one everybody omits, including the first draft of this")
+    print("   script. The scorer takes max() over the two cluster-to-speaker mappings, because")
+    print("   cluster ids are arbitrary, so it CANNOT report below 50% and on a short track it")
+    print("   lands near 60% on luck alone. Quoting 50% as the coin flip turns a null result into")
+    print("   a weak positive one. MFCCs encode WHAT was said far more strongly than WHO said it,")
+    print("   so without a speaker-embedding model you are clustering phonetics. meeting.py sweeps")
+    print("   every speaker pair and scores each one against this same measured null.")
 
     fig, ax = plt.subplots(figsize=(13, 3.5))
     colours = {pair[0]: "tab:blue", pair[1]: "tab:orange"}
@@ -653,18 +666,21 @@ def section_meeting(ds):
         if ts and ts[0] is not None:
             ax.plot([ts[0], ts[0]], [0.35, 0.65], color="0.3", lw=0.6)
     ax.set(yticks=[1], yticklabels=["true speaker"], xlabel="seconds",
-           title=f"Two-speaker track: true turns (bars) and Whisper word onsets (ticks) — "
-                 f"MFCC clustering scored {acc:.0%}")
+           title=f"Two-speaker track: true turns (bars) and Whisper word onsets (ticks), "
+                 f"MFCC clustering scored {acc:.0%} against a {chance:.0%} null")
     fig.tight_layout()
     save_fig("13_meeting_timeline.png")
 
     fig, ax = plt.subplots(figsize=(8, 4))
-    ax.bar(["this track"], [acc * 100], color="tab:red" if acc < 0.8 else "tab:green")
-    ax.axhline(50, color="0.4", ls=":", label="coin flip (2 speakers)")
+    ax.bar(["this track"], [acc * 100], color="tab:red" if acc < chance else "tab:green")
+    ax.axhline(50, color="0.75", ls=":", label="the 50% everyone quotes")
+    ax.axhline(chance * 100, color="tab:red", ls=":",
+               label=f"RANDOM clustering, measured ({chance:.0%} at n={n_win})")
     ax.axhline(80, color="tab:green", ls="--", label="usable threshold")
     ax.text(0, acc * 100, f"{acc:.1%}", ha="center", va="bottom")
     ax.set(ylabel="frame accuracy (%)", ylim=(0, 105),
-           title="MFCC + AgglomerativeClustering is not diarization")
+           title="MFCC + AgglomerativeClustering is not diarization\n"
+                 "(the null is not 50%: the scorer picks the better label mapping)")
     ax.legend(fontsize=8)
     fig.tight_layout()
     save_fig("14_diarization_accuracy.png")
@@ -728,7 +744,11 @@ def merge_speakers(segments, chunks, total_s):
 
 
 def mfcc_diarization_accuracy(audio, truth, win_s: float = 1.0):
-    """Cluster 1-second windows by MFCC mean and score against the true speaker labels."""
+    """Cluster 1-second windows by MFCC mean and score against the true speaker labels.
+
+    Returns (accuracy, n_windows). The window count is not decoration: it is the only thing
+    the chance baseline below depends on, and the accuracy is misleading without it.
+    """
     import librosa
     from sklearn.cluster import AgglomerativeClustering
 
@@ -743,12 +763,34 @@ def mfcc_diarization_accuracy(audio, truth, win_s: float = 1.0):
         feats.append(mfcc.mean(axis=1))
         labels.append(who)
     if len(set(labels)) < 2:
-        return float("nan")
+        return float("nan"), len(labels)
     pred = AgglomerativeClustering(n_clusters=2, metric="cosine",
                                    linkage="average").fit_predict(np.array(feats))
     truth_arr = np.array([sorted(set(labels)).index(l) for l in labels])
     acc = max((pred == truth_arr).mean(), (pred != truth_arr).mean())   # labels are arbitrary
-    return float(acc)
+    return float(acc), len(labels)
+
+
+def chance_baseline(n_windows: int, trials: int = 20_000, seed: int = SEED) -> float:
+    """What the scorer above returns when the clustering is RANDOM. It is not 50%.
+
+    Cluster ids are arbitrary, so that scorer takes max() over the two cluster-to-speaker
+    mappings. The max can never fall below 0.5, and on a short track it sits well above it
+    on luck alone: with n windows the expected score is about 0.5 + sqrt(2 / (pi * n)) / 2,
+    which is 59% at n=19 and still 54% at n=100.
+
+    So "50% is a coin flip" flatters every number quoted beside it, and an accuracy in the
+    high 50s on a 20-second track is not a weak positive result - it is chance. This measures
+    the null on the track you actually have instead of assuming one.
+
+    The arrangement of the true labels does not enter into it: for iid uniform predictions
+    the agreement is Binomial(n, 1/2) / n whatever the truth looks like.
+    """
+    rng = np.random.default_rng(seed)
+    truth = np.zeros(n_windows, dtype=int)
+    truth[n_windows // 2:] = 1
+    agree = (rng.integers(0, 2, size=(trials, n_windows)) == truth).mean(axis=1)
+    return float(np.maximum(agree, 1.0 - agree).mean())
 
 
 # ===========================================================================
@@ -808,6 +850,110 @@ def section_handson(french):
     save_fig("15_int16_overflow.png")
 
 
+# ===========================================================================
+# 9. THE LAST SEAM
+# ===========================================================================
+def section_vocabulary(english, french):
+    banner("9. The last seam: a vocabulary that deletes what it cannot say")
+
+    print(
+        "\n   Section 1 said stage 1 hands stage 2 a string. Stage 3 has the same problem in\n"
+        "   reverse, and it is worse, because VITS is character-level and its vocabulary is\n"
+        "   tiny. VitsTokenizer is built with normalize=True, and that path ends in this line\n"
+        "   of transformers/models/vits/tokenization_vits.py:\n"
+        "\n     filtered_text = \"\".join(list(filter(lambda char: char in self.encoder, ...)))\n"
+        "\n   Not <unk>. DELETED. Unit 6's SpeechT5 at least emits an <unk> you can count. Here\n"
+        "   the character is dropped from the string before the model ever sees it, nothing is\n"
+        "   logged, and the audio comes out fluent and complete."
+    )
+
+    arabic = translate_text(english, MT_ARA)
+    print(f"\n     the same English sentence, two targets:")
+    print(f"       en -> fr : {french}")
+    print(f"       en -> ar : {arabic}")
+
+    # ".,!?;:" plus the Arabic comma, question mark and semicolon. Every claim below is
+    # computed from these lists rather than written down, so the prose cannot drift away
+    # from the vocabularies if a checkpoint is ever revised.
+    SENTENCE_PUNCT = ".,!?;:" + "\u060c\u061f\u061b"
+
+    rows = []
+    for label, tts_id, text in (("English", TTS_ENG, english),
+                                ("French", TTS_FRA, french),
+                                ("Arabic", TTS_ARA, arabic)):
+        tok, _ = speaker(tts_id)
+        # get_vocab() folds in the added special tokens (<unk>, <pad>), which are not
+        # symbols the model can pronounce. Count only what it can actually say.
+        symbols = sorted(set(tok.get_vocab()) - set(tok.all_special_tokens))
+        letters = [c for c in symbols if c.isalpha()]
+        digits = [c for c in symbols if c.isdigit()]
+        sentence = [c for c in SENTENCE_PUNCT if c in symbols]
+        other = [c for c in symbols if not c.isalnum() and c not in sentence]
+
+        normalised = tok.normalize_text(text)
+        filtered, _ = tok.prepare_for_tokenization(text)
+        dropped = sorted(set(normalised) - set(filtered))
+        n_dropped = len(normalised) - len(filtered)
+        rows.append({"label": label, "id": tts_id, "symbols": len(symbols),
+                     "letters": len(letters), "digits": digits, "sentence": sentence,
+                     "other": other, "n_dropped": n_dropped, "dropped": dropped})
+
+        print(f"\n     {tts_id}")
+        print(f"       pronounceable symbols : {len(symbols)}  ({len(letters)} of them letters)")
+        print(f"       digits                : {len(digits)}  {''.join(digits) or '(none)'}")
+        print(f"       sentence punctuation  : {len(sentence)}  {''.join(sentence) or '(NONE)'}")
+        print(f"       everything else       : {''.join(other) or '(none)'}")
+        print(f"       deleted from our text : {n_dropped} characters  "
+              f"{''.join(dropped) or '(none)'}")
+
+    no_punct = [r["label"] for r in rows if not r["sentence"]]
+    no_digits = [r["label"] for r in rows if not r["digits"]]
+    ara = next(r for r in rows if r["label"] == "Arabic")
+    allof = " - which is all of them" if len(no_punct) == len(rows) else ""
+    print(
+        f"\n   Voices with NO sentence punctuation at all: {', '.join(no_punct)}{allof}.\n"
+        f"   Voices with NO digits at all: {', '.join(no_digits)}.\n"
+        "\n   A full stop is not mispronounced by these models, it is REMOVED, and with it every\n"
+        "   prosodic cue a reader would take from it. English keeps digits 0 to 6 and stops\n"
+        "   there, so even in English '1987' is only partly sayable and '1989' is not.\n"
+        f"\n   Arabic is the extreme case: {ara['symbols']} symbols, {ara['letters']} of them "
+        "bare letters, no digits, no\n"
+        "   sentence punctuation, not even an apostrophe or a hyphen, and no harakat - so the\n"
+        "   short vowels a diacritised text carries are deleted along with everything else."
+    )
+    print(
+        "\n   This matters for the hands-on, because space/ targets Arabic. The grader only asks\n"
+        "   'is this confidently not English', and deleted punctuation cannot make it fail. Your\n"
+        "   Space passes while quietly dropping characters, which is this unit's whole thesis in\n"
+        "   one line: the seam was lossy and the score did not notice."
+    )
+
+    save_wav("17_arabic_output.wav", synthesise(arabic, TTS_ARA), SAMPLING_RATE)
+
+    # Latin labels only. DejaVu Sans renders Arabic unshaped and left-to-right, so a figure
+    # that printed the dropped glyphs would misrepresent the script it is complaining about.
+    # The counts are the measurement; the glyphs are printed above where the console can
+    # render them properly.
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 4))
+    names = [r["label"] for r in rows]
+    ax1.bar(names, [r["symbols"] for r in rows], color=["tab:blue", "tab:orange", "tab:green"])
+    for i, r in enumerate(rows):
+        ax1.text(i, r["symbols"],
+                 f"{r['symbols']} symbols\n{r['letters']} letters\n{len(r['digits'])} digits\n"
+                 f"{len(r['sentence'])} sentence punct",
+                 ha="center", va="bottom", fontsize=8)
+    ax1.set(ylabel="pronounceable symbols", ylim=(0, max(r["symbols"] for r in rows) * 1.5),
+            title="Every MMS voice is a character vocabulary of about 40 symbols")
+    ax2.bar(names, [r["n_dropped"] for r in rows],
+            color=["tab:blue", "tab:orange", "tab:green"])
+    for i, r in enumerate(rows):
+        ax2.text(i, r["n_dropped"], str(r["n_dropped"]), ha="center", va="bottom")
+    ax2.set(ylabel="characters deleted", title="Characters silently deleted from our own\n"
+                                               "pipeline output, before the model saw it")
+    fig.tight_layout()
+    save_fig("18_vocabulary_filter.png")
+
+
 def main() -> None:
     print("Hugging Face Audio Course — Unit 7: Putting it all together")
     print(f"Figures will be written to: {FIG_DIR}")
@@ -817,13 +963,14 @@ def main() -> None:
     print(f"Demo clip: row 0 of {len(ds)} in {DUMMY_ID}")
 
     english, french = section_cascade(clip)
-    section_language_forcing(clip, english, french)
+    section_language_forcing(clip, french)
     section_error_propagation(ds)
     section_latency(ds)
     section_prosody_bottleneck()
     section_assistant(ds)
     section_meeting(ds)
     section_handson(french)
+    section_vocabulary(english, french)
 
     banner("Done!  See figures/ for the plots.")
     print("Next steps:")
@@ -832,6 +979,8 @@ def main() -> None:
     print("   meeting.py       - word timestamps + the merge, and the diarization sweep")
     print("   gradio_demo.py   - four tabs: translate, compare cascades, assistant, meeting")
     print("   space/           - the hands-on Space, ready to upload (not published)")
+    print("\nAlso remember: EVERY mms-tts VOICE SILENTLY DELETES CHARACTERS IT HAS NO SYMBOL")
+    print("FOR. None of them has a full stop, a comma or a question mark.")
     print("\nRemember: WHISPER'S task='translate' ONLY EVER PRODUCES ENGLISH. THE HANDS-ON")
     print("REQUIRES NON-ENGLISH. ADD A TRANSLATION HOP - DO NOT FORCE A LANGUAGE TOKEN.")
     print("\nSupplemental reading from the course:")
