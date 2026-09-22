@@ -245,6 +245,7 @@ dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pooch" },
+    { name = "sentencepiece" },
     { name = "soundfile" },
     { name = "torch", version = "2.12.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'darwin'" },
     { name = "torch", version = "2.12.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform != 'darwin'" },
@@ -254,9 +255,6 @@ dependencies = [
 [package.optional-dependencies]
 generation = [
     { name = "protobuf" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "sentencepiece" },
 ]
 training = [
     { name = "evaluate" },
@@ -278,8 +276,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26,<3" },
     { name = "pooch", specifier = ">=1.8" },
     { name = "protobuf", marker = "extra == 'generation'", specifier = ">=4,<6" },
-    { name = "scipy", marker = "extra == 'generation'", specifier = ">=1.11" },
-    { name = "sentencepiece", marker = "extra == 'generation'", specifier = ">=0.2" },
+    { name = "sentencepiece", specifier = ">=0.2" },
     { name = "soundfile", specifier = ">=0.12.1" },
     { name = "tensorboard", marker = "extra == 'training'", specifier = ">=2.14" },
     { name = "torch", specifier = ">=2.2", index = "https://download.pytorch.org/whl/cpu" },
