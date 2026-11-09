@@ -1,0 +1,33 @@
+# The course's template installs transformers from git main, which is now 5.x and moves
+# enough API to be a coin flip. Pin below it, matching this repo's Unit 5 and Unit 6 Space
+# recipes.
+transformers>=4.46,<5
+
+# The gradio SDK image does not ship torch. A free CPU Space gets the CPU wheels anyway.
+torch
+
+# MarianTokenizer is sentencepiece-only - there is no fast variant - so
+# MarianTokenizer.from_pretrained() raises ImportError without this. It is the same reason
+# sentencepiece became a core dependency of this repo for Unit 6.
+sentencepiece
+
+# app.py decodes the uploaded file to 16 kHz mono itself, which keeps the ASR pipeline from
+# shelling out to ffmpeg and from raising "torchaudio is required to resample". Pulls in
+# soundfile and pooch, so neither needs a line of its own.
+librosa
+
+# app.py imports numpy directly (np.clip, np.asarray, the int16 cast). It would arrive
+# transitively through torch, transformers and librosa, but a direct import is a direct
+# dependency.
+numpy>=1.26,<3
+
+# Deliberately absent, each for a reason:
+#   datasets   - Unit 6's Space recipe needs it for the x-vectors. This app deleted the
+#                x-vector block, so listing it would download a dataset on every boot for
+#                nothing.
+#   gradio     - the Space SDK installs the version named in README.md's sdk_version.
+#                Pinning it here fights the frontmatter, which is the classic way to end up
+#                running a gradio the Space's own runtime did not expect.
+#   spaces     - ZeroGPU only. Importing it on a CPU Space is what stops the app starting.
+#   accelerate - no device_map and no offload here; this is CPU only.
+#   soundfile  - arrives with librosa. A second pin is a second thing to drift.
