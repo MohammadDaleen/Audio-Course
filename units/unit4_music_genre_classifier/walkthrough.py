@@ -88,7 +88,8 @@ def demo_keyword_spotting():
     except Exception as exc:
         print(f"   (Speech Commands unavailable: {type(exc).__name__}; using a cached speech clip.)")
         array, sr = _cached_speech_clip()
-        note = " (a full sentence, not a single command - expect '_unknown_'/low scores)"
+        note = (" (a full sentence, which is not one of its classes - watch it pick a command"
+                " word anyway rather than '_unknown_')")
 
     print(f"   classifying a clip{note}:")
     for p in classifier({"array": array, "sampling_rate": sr}, top_k=5):
