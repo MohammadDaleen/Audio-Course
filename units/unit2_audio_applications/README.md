@@ -42,8 +42,11 @@ uv run python units/unit2_audio_applications/generation_demo.py
 
 - Models download to the Hugging Face cache (`~/.cache/huggingface`), not this repo. First run only.
 - The classification and ASR models expect **16 kHz** audio; MINDS-14 is resampled before use.
-- `wav2vec2-base-960h` outputs **UPPERCASE text with no punctuation** — that is expected for a
-  LibriSpeech-trained CTC model, not a bug.
+- `wav2vec2-base-960h` outputs **UPPERCASE letters and apostrophes, no other punctuation** — that
+  is expected for a LibriSpeech-trained CTC model, not a bug.
+- The intent classifier is ~1.2 GB of weights, but budget **~2.5 GB of cache** for it: it ships only
+  a `pytorch_model.bin`, and transformers also fetches the converted `model.safetensors` from a Hub
+  PR branch alongside it.
 - Everything runs on CPU. Generation is slow (tens of seconds to minutes per clip); token counts
   are kept small in the demo.
 - A Windows "symlinks not supported" cache warning may appear — harmless.

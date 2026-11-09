@@ -80,7 +80,8 @@ def section_classification(minds):
     # The pipeline bundles preprocessing + model + post-processing. This model was
     # fine-tuned on MINDS-14 to predict the caller's intent. It expects 16 kHz audio,
     # which is why we resampled the dataset before calling it.
-    print("\n[1] Loading the audio-classification pipeline (model ~1.2 GB on first run)…")
+    print("\n[1] Loading the audio-classification pipeline (~1.2 GB of weights; the first run"
+          " can use ~2.5 GB of cache, see the README)…")
     classifier = pipeline(
         "audio-classification",
         model="anton-l/xtreme_s_xlsr_300m_minds14",
@@ -126,7 +127,8 @@ def section_asr(asr, minds):
         print(f"     reference   : {example['english_transcription']}")
 
     print(
-        "\n     Note: wav2vec2-base-960h returns UPPERCASE text with no punctuation\n"
+        "\n     Note: wav2vec2-base-960h returns UPPERCASE letters and apostrophes, no other\n"
+        "     punctuation\n"
         "     (it is a CTC model trained on LibriSpeech). For another language you would\n"
         "     pass a matching model, e.g.:\n"
         "         pipeline('automatic-speech-recognition',\n"
@@ -178,8 +180,10 @@ def section_handson(asr):
     print(f"     pipeline text : {result['text']}")
     print(f"     reference     : {reference}")
     print(
-        "\n     The pipeline output and the reference should match closely (modulo case\n"
-        "     and punctuation). This is exactly the Unit 2 hands-on workflow."
+        "\n     The pipeline output should be close to the reference, but not identical:\n"
+        "     expect case and punctuation differences plus the odd word-level error, because\n"
+        "     a LibriSpeech-trained CTC model has never heard parliamentary English. This is\n"
+        "     exactly the Unit 2 hands-on workflow."
     )
 
 
