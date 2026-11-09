@@ -36,7 +36,8 @@ uv run python units/unit3_transformer_architectures/walkthrough.py
 | 4 | **Classification** | The Audio Spectrogram Transformer treating a spectrogram as 16×16 ViT patches; top AudioSet labels | `MIT/ast-finetuned-audioset-10-10-0.4593` |
 
 Section 4 also notes that Unit 2's intent classifier is a `Wav2Vec2ForSequenceClassification` — the same
-encoder as the CTC model, but mean-pooled with a linear head — contrasting it with AST.
+architecture as the CTC model, though the larger multilingual XLS-R 300M (24 layers x 1024 against
+base's 12 x 768), mean-pooled with a linear head — contrasting it with AST.
 
 ## Notes
 
