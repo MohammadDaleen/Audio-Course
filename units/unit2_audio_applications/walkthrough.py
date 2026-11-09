@@ -165,6 +165,9 @@ def section_handson(asr):
     print("\n[3] Streaming facebook/voxpopuli (en) - no full download…")
     try:
         vp = load_voxpopuli_stream("en")
+        # On Linux this script can abort AFTER it finishes ("Fatal Python error:
+        # PyGILState_Release", exit 134): pyarrow's read-ahead thread is still fetching this
+        # ~500 MB shard when Python shuts down. Results are unaffected; see the README notes.
         example = next(iter(vp))  # pull a single example on the fly
     except Exception as exc:
         print("     Could not stream VoxPopuli:")

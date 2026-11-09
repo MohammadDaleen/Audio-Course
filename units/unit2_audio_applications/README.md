@@ -50,3 +50,12 @@ uv run python units/unit2_audio_applications/generation_demo.py
 - Everything runs on CPU. Generation is slow (tens of seconds to minutes per clip); token counts
   are kept small in the demo.
 - A Windows "symlinks not supported" cache warning may appear — harmless.
+- **On Linux, `walkthrough.py` can abort after it has finished.** It prints "Done!", then Python dies
+  during shutdown with `Fatal Python error: PyGILState_Release ... must be current when releasing`
+  (exit code 134). Everything printed and saved before that is complete. It reproduces in a 15-line
+  script that streams one VoxPopuli example and exits, on CPython 3.12.3 and 3.12.12 alike; closing
+  the iterator does not help, and Unit 7's much smaller `english_dialects` stream exits cleanly on the
+  same machine. The likely cause is pyarrow's read-ahead thread still downloading a large (~500 MB)
+  VoxPopuli parquet shard at interpreter shutdown: an upstream `pyarrow`/`datasets` streaming issue,
+  not something in this code. The notebook is unaffected (`nbconvert --execute` reports no error).
+  Windows was not re-tested.
