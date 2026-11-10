@@ -281,7 +281,9 @@ def section_classification():
     # connect back to Unit 2 without loading the 1.2 GB weights (config only)
     cfg = AutoConfig.from_pretrained("anton-l/xtreme_s_xlsr_300m_minds14")
     print(f"\n   Connect back: Unit 2's intent classifier is a {cfg.architectures}")
-    print("   = the same Wav2Vec2 encoder, mean-pooled over frames + a linear head,")
+    print("   = the same Wav2Vec2 ARCHITECTURE (here the larger multilingual XLS-R 300M:")
+    print(f"     {cfg.num_hidden_layers} layers x {cfg.hidden_size}, vs base's 12 x 768), "
+          "mean-pooled over frames + a linear head,")
     print("   whereas AST is a pure transformer over spectrogram patches.")
 
 

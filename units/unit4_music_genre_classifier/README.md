@@ -50,9 +50,9 @@ The Unit 4 hands-on asks you to fine-tune on GTZAN to **≥ 87% accuracy** (the 
 push the model to the Hub for your certificate. The easiest path is the fully-explained
 [`colab_handson.ipynb`](colab_handson.ipynb): open it in Google Colab on a **GPU** runtime
 (Runtime → Change runtime type → T4 GPU) and run all cells (~1 hour). It trains for 20 epochs, keeps the
-best checkpoint, and pushes the model with the certificate metadata. Equivalently, `finetune.py` full
-mode (`UNIT4_MODE=full`) runs the same recipe. To push past the baseline, try more epochs, a different
-base model (Wav2Vec2, AST), or a learning-rate sweep. Full training is not feasible on this CPU machine.
+best checkpoint, and pushes the model with the certificate metadata. `finetune.py` full mode
+(`UNIT4_MODE=full`) runs the course's shorter 10-epoch recipe instead. To push past the baseline, try
+more epochs, a different base model (Wav2Vec2, AST), or a learning-rate sweep. Full training is not feasible on this CPU machine.
 
 ## Concepts covered
 

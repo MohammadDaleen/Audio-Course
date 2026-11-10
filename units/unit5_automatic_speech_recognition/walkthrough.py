@@ -243,7 +243,8 @@ def drop_empty_refs(references: list[str], hypotheses: list[str]):
 
 def normalizers():
     """Whisper ships two text normalisers. The English one is much more aggressive:
-    it expands contractions, spells out numbers and applies a 1740-entry British ->
+    it expands contractions, turns spelled-out numbers and currency into digits
+    ("twenty dollars" -> "$20") and applies a 1740-entry British ->
     American spelling map that rides along with the tokenizer."""
     from transformers import WhisperTokenizer
     from transformers.models.whisper.english_normalizer import (
@@ -760,7 +761,8 @@ def section_evaluate(ds):
     print(f"     english : {english(probe)!r}")
     print(
         "\n   BasicTextNormalizer lowercases and strips punctuation - safe for any language.\n"
-        "   EnglishTextNormalizer additionally expands contractions and numbers and applies\n"
+        "   EnglishTextNormalizer additionally expands contractions, turns spelled-out numbers\n"
+        "   and currency into digits ('twenty dollars' -> '$20'), and applies\n"
         "   a British→American spelling map. Whisper writes '$20'; LibriSpeech's reference\n"
         "   says 'TWENTY DOLLARS'. Without normalisation you are scoring formatting, not\n"
         "   speech recognition."

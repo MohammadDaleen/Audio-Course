@@ -13,9 +13,11 @@ uploaded (share=False).
 from __future__ import annotations
 
 import gradio as gr
+import librosa
 from transformers import pipeline
 
 MODEL_ID = "sanchit-gandhi/distilhubert-finetuned-gtzan"
+SAMPLING_RATE = 16_000   # the model's feature extractor
 print(f"Loading {MODEL_ID} (~90 MB on first run)…")
 pipe = pipeline("audio-classification", model=MODEL_ID)
 
@@ -23,8 +25,11 @@ pipe = pipeline("audio-classification", model=MODEL_ID)
 def classify(filepath):
     if filepath is None:
         return {}
-    # The pipeline reads the file and resamples to 16 kHz internally.
-    preds = pipe(filepath, top_k=10)
+    # Decode with librosa and hand the pipeline an ARRAY. Given a file path, the pipeline
+    # shells out to an ffmpeg binary to read it, which this repo deliberately does not
+    # depend on: without ffmpeg on PATH that call raises instead of classifying.
+    array, sr = librosa.load(filepath, sr=SAMPLING_RATE, mono=True)
+    preds = pipe({"array": array, "sampling_rate": sr}, top_k=10)
     return {p["label"]: float(p["score"]) for p in preds}  # gr.Label wants {label: prob}
 
 
